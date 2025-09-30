@@ -1,0 +1,60 @@
+# Environment and secrets
+.env
+.env.*
+*.env
+**/secrets
+**/credentials
+*.key
+*.pem
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.coverage
+htmlcov
+
+# Caches
+.cache
+**/.cache
+**/cache
+licenses/
+.ci/
+
+# HuggingFace cache
+.huggingface
+**/.huggingface
+**/huggingface
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Docs and PRD
+*.md
+!README.md
+
+# CI/CD
+.github
+
+# Temp
+*.tmp
+*.log
+tmp/
+temp/

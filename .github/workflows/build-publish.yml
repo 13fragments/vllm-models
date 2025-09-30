@@ -1,0 +1,235 @@
+name: Build and Publish vLLM Model Images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REG_GHCR: ghcr.io/13fragments
+  REG_DH: 13fragments
+
+jobs:
+  prepare:
+    name: Prepare Build Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.resolve.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Resolve models
+        id: resolve
+        run: |
+          python .ci/resolve_models.py models.yaml > matrix.json
+          echo "matrix=$(cat matrix.json | jq -c .)" >> $GITHUB_OUTPUT
+
+      - name: Display matrix
+        run: |
+          echo "Build matrix:"
+          cat matrix.json | jq .
+
+  build:
+    name: Build ${{ matrix.short }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: matrix.publish_ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: matrix.publish_dh
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Harvest licenses
+        run: |
+          python .ci/harvest_licenses.py \
+            --id "${{ matrix.id }}" \
+            --rev "${{ matrix.revision }}" \
+            --license "${{ matrix.license }}" \
+            --out licenses
+
+      - name: Build and push slim image (GHCR)
+        if: matrix.publish_ghcr
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.slim
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ matrix.base_image }}
+            MODEL_ID=${{ matrix.id }}
+            MODEL_DIR=${{ matrix.download_root }}/${{ matrix.short }}
+            HF_CACHE=${{ matrix.hf_cache_dir }}
+            SERVE_ARGS=${{ matrix.serve_args }}
+          tags: |
+            ${{ env.REG_GHCR }}/${{ matrix.image }}:${{ matrix.version }}-slim
+            ${{ env.REG_GHCR }}/${{ matrix.image }}:r${{ matrix.revision }}-slim
+          labels: |
+            org.opencontainers.image.title=${{ matrix.oci_title }} (Slim)
+            org.opencontainers.image.description=${{ matrix.oci_description }}
+            org.opencontainers.image.url=${{ matrix.oci_url }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ matrix.version }}
+            org.opencontainers.image.revision=${{ matrix.revision }}
+            org.opencontainers.image.licenses=CC0-1.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push slim image (Docker Hub)
+        if: matrix.publish_dh
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.slim
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ matrix.base_image }}
+            MODEL_ID=${{ matrix.id }}
+            MODEL_DIR=${{ matrix.download_root }}/${{ matrix.short }}
+            HF_CACHE=${{ matrix.hf_cache_dir }}
+            SERVE_ARGS=${{ matrix.serve_args }}
+          tags: |
+            ${{ env.REG_DH }}/${{ matrix.image }}:${{ matrix.version }}-slim
+            ${{ env.REG_DH }}/${{ matrix.image }}:r${{ matrix.revision }}-slim
+          labels: |
+            org.opencontainers.image.title=${{ matrix.oci_title }} (Slim)
+            org.opencontainers.image.description=${{ matrix.oci_description }}
+            org.opencontainers.image.url=${{ matrix.oci_url }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ matrix.version }}
+            org.opencontainers.image.revision=${{ matrix.revision }}
+            org.opencontainers.image.licenses=CC0-1.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push fat image (GHCR)
+        if: matrix.build_fat && matrix.publish_ghcr
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.fat
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ matrix.base_image }}
+            MODEL_ID=${{ matrix.id }}
+            MODEL_DIR=${{ matrix.download_root }}/${{ matrix.short }}
+            HF_CACHE=${{ matrix.hf_cache_dir }}
+            SERVE_ARGS=${{ matrix.serve_args }}
+          tags: |
+            ${{ env.REG_GHCR }}/${{ matrix.image }}:${{ matrix.version }}-fat
+            ${{ env.REG_GHCR }}/${{ matrix.image }}:r${{ matrix.revision }}-fat
+          labels: |
+            org.opencontainers.image.title=${{ matrix.oci_title }} (Fat)
+            org.opencontainers.image.description=${{ matrix.oci_description }}
+            org.opencontainers.image.url=${{ matrix.oci_url }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ matrix.version }}
+            org.opencontainers.image.revision=${{ matrix.revision }}
+            org.opencontainers.image.licenses=CC0-1.0; includes third-party: ${{ matrix.license }} (model), Apache-2.0 (vLLM)
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push fat image (Docker Hub)
+        if: matrix.build_fat && matrix.publish_dh
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.fat
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ matrix.base_image }}
+            MODEL_ID=${{ matrix.id }}
+            MODEL_DIR=${{ matrix.download_root }}/${{ matrix.short }}
+            HF_CACHE=${{ matrix.hf_cache_dir }}
+            SERVE_ARGS=${{ matrix.serve_args }}
+          tags: |
+            ${{ env.REG_DH }}/${{ matrix.image }}:${{ matrix.version }}-fat
+            ${{ env.REG_DH }}/${{ matrix.image }}:r${{ matrix.revision }}-fat
+          labels: |
+            org.opencontainers.image.title=${{ matrix.oci_title }} (Fat)
+            org.opencontainers.image.description=${{ matrix.oci_description }}
+            org.opencontainers.image.url=${{ matrix.oci_url }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ matrix.version }}
+            org.opencontainers.image.revision=${{ matrix.revision }}
+            org.opencontainers.image.licenses=CC0-1.0; includes third-party: ${{ matrix.license }} (model), Apache-2.0 (vLLM)
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy security scan (slim)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.REG_GHCR }}/${{ matrix.image }}:${{ matrix.version }}-slim
+          format: 'sarif'
+          output: 'trivy-slim-results.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
+
+      - name: Run Trivy security scan (fat)
+        if: matrix.build_fat
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.REG_GHCR }}/${{ matrix.image }}:${{ matrix.version }}-fat
+          format: 'sarif'
+          output: 'trivy-fat-results.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: '.'
+
+      - name: Generate summary
+        if: always()
+        run: |
+          python .ci/summary.py --matrix '${{ toJSON(matrix) }}' >> $GITHUB_STEP_SUMMARY

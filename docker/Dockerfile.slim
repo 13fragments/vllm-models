@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1.7
+ARG BASE_IMAGE=vllm/vllm-openai:v0.6.0
+FROM ${BASE_IMAGE}
+
+# Build arguments
+ARG MODEL_ID
+ARG MODEL_DIR=/models/model
+ARG HF_CACHE=/root/.cache/huggingface
+ARG SERVE_ARGS="--host 0.0.0.0 --port 8000"
+
+# Environment variables
+ENV HF_HOME=${HF_CACHE} \
+    HUGGINGFACE_HUB_CACHE=${HF_CACHE} \
+    MODEL_ID=${MODEL_ID} \
+    MODEL_DIR=${MODEL_DIR} \
+    SERVE_ARGS=${SERVE_ARGS}
+
+# Copy entrypoint script
+COPY slim/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# OCI labels (placeholders - will be set by docker build --label)
+LABEL org.opencontainers.image.title="vLLM Slim Image"
+LABEL org.opencontainers.image.description="vLLM image that downloads model at runtime"
+LABEL org.opencontainers.image.source="https://github.com/13fragments/vllm-models"
+
+# Expose default vLLM port
+EXPOSE 8000
+
+# Entrypoint
+ENTRYPOINT ["/bin/bash", "-c", "/usr/local/bin/entrypoint.sh"]

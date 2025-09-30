@@ -1,0 +1,32 @@
+defaults:
+  base_image: "vllm/vllm-openai:v0.6.0"
+  arch: "linux/amd64"
+  download_root: "/models"
+  hf_cache_dir: "/root/.cache/huggingface"
+  spdx_permissive_whitelist:
+    - apache-2.0
+    - mit
+    - bsd-2-clause
+    - bsd-3-clause
+    - isc
+    - cc0-1.0
+    - unlicense
+  publish:
+    ghcr: true
+    dockerhub: true
+
+models:
+  - id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+    short: "deepseek-r1-distill-qwen-15b"
+    revision: null
+    permissive: auto
+    override_spdx: null
+    gated: auto
+    serve_args: ["--host", "0.0.0.0", "--port", "8000"]
+    oci:
+      title: "vLLM + DeepSeek-R1-Distill-Qwen-1.5B"
+      description: "Slim/Fat images built from Hugging Face; see /licenses for compliance."
+      url: "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+    publish:
+      ghcr: true
+      dockerhub: true
