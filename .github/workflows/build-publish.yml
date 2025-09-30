@@ -85,6 +85,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Harvest licenses
+        if: matrix.build_fat
         run: |
           python .ci/harvest_licenses.py \
             --id "${{ matrix.id }}" \
