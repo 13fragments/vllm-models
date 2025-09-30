@@ -234,11 +234,19 @@ jobs:
           severity: 'HIGH,CRITICAL'
           exit-code: '0'
 
-      - name: Upload Trivy results
+      - name: Upload Trivy results (slim)
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: '.'
+          sarif_file: 'trivy-slim-results.sarif'
+          category: 'trivy-slim-${{ matrix.short }}'
+
+      - name: Upload Trivy results (fat)
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && matrix.build_fat
+        with:
+          sarif_file: 'trivy-fat-results.sarif'
+          category: 'trivy-fat-${{ matrix.short }}'
 
       - name: Generate summary
         if: always()
