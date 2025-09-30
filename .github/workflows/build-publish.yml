@@ -87,11 +87,15 @@ jobs:
       - name: Harvest licenses
         if: matrix.build_fat
         run: |
+          echo "Harvesting licenses for fat image build..."
           python .ci/harvest_licenses.py \
             --id "${{ matrix.id }}" \
             --rev "${{ matrix.revision }}" \
             --license "${{ matrix.license }}" \
             --out licenses
+          echo "License directory contents:"
+          ls -la licenses/
+          echo "License files harvested successfully"
 
       - name: Build and push slim image (GHCR)
         if: matrix.publish_ghcr
