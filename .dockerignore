@@ -31,7 +31,7 @@ htmlcov
 .cache
 **/.cache
 **/cache
-licenses/
+# Note: licenses/ is needed for fat image builds, so NOT excluded
 .ci/
 
 # HuggingFace cache
