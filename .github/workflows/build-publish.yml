@@ -128,6 +128,8 @@ jobs:
           file: docker/Dockerfile.slim
           platforms: linux/amd64
           push: true
+          # Disable provenance to avoid multi-platform manifest issues with Docker Hub
+          provenance: false
           build-args: |
             BASE_IMAGE=${{ matrix.base_image }}
             MODEL_ID=${{ matrix.id }}
@@ -145,8 +147,9 @@ jobs:
             org.opencontainers.image.version=${{ matrix.version }}
             org.opencontainers.image.revision=${{ matrix.revision }}
             org.opencontainers.image.licenses=CC0-1.0
+          # Use cache from GHA but don't write back to avoid layer upload issues
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
       - name: Build and push fat image (GHCR)
         if: matrix.build_fat && matrix.publish_ghcr
@@ -184,6 +187,8 @@ jobs:
           file: docker/Dockerfile.fat
           platforms: linux/amd64
           push: true
+          # Disable provenance to avoid multi-platform manifest issues with Docker Hub
+          provenance: false
           build-args: |
             BASE_IMAGE=${{ matrix.base_image }}
             MODEL_ID=${{ matrix.id }}
@@ -201,8 +206,9 @@ jobs:
             org.opencontainers.image.version=${{ matrix.version }}
             org.opencontainers.image.revision=${{ matrix.revision }}
             org.opencontainers.image.licenses=CC0-1.0; includes third-party: ${{ matrix.license }} (model), Apache-2.0 (vLLM)
+          # Use cache from GHA but don't write back to avoid layer upload issues
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
       - name: Run Trivy security scan (slim)
         uses: aquasecurity/trivy-action@0.28.0
