@@ -46,6 +46,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write  # Required for uploading SARIF security scan results
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
