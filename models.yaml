@@ -19,7 +19,7 @@ models:
   - id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
     short: "deepseek-r1-distill-qwen-15b"
     revision: null
-    permissive: auto
+    permissive: false  # Force slim-only to avoid disk space issues on GH Actions
     override_spdx: null
     gated: auto
     serve_args: ["--host", "0.0.0.0", "--port", "8000"]
