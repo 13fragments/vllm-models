@@ -17,12 +17,14 @@ def format_size(bytes_size: int) -> str:
     return f"{bytes_size:.2f} PB"
 
 
-def generate_summary(matrix_entry: dict) -> str:
+def generate_summary(matrix_entry: dict, reg_ghcr: str = "ghcr.io/13fragments", reg_dh: str = "13fragments") -> str:
     """
     Generate markdown summary for a single model build.
 
     Args:
         matrix_entry: Build matrix entry from resolve_models.py
+        reg_ghcr: GHCR registry path - passed explicitly to avoid GitHub Actions masking
+        reg_dh: Docker Hub registry path - passed explicitly to avoid GitHub Actions masking
 
     Returns:
         Markdown summary
@@ -70,22 +72,22 @@ def generate_summary(matrix_entry: dict) -> str:
 
     # Generate tag list
     if matrix_entry.get("publish_ghcr", True):
-        summary += f"- `ghcr.io/13fragments/{image}:{version}-slim`\n"
-        summary += f"- `ghcr.io/13fragments/{image}:r{revision[:7]}-slim`\n"
+        summary += f"- `{reg_ghcr}/{image}:{version}-slim`\n"
+        summary += f"- `{reg_ghcr}/{image}:r{revision[:7]}-slim`\n"
 
     if matrix_entry.get("publish_dh", True):
-        summary += f"- `13fragments/{image}:{version}-slim`\n"
-        summary += f"- `13fragments/{image}:r{revision[:7]}-slim`\n"
+        summary += f"- `{reg_dh}/{image}:{version}-slim`\n"
+        summary += f"- `{reg_dh}/{image}:r{revision[:7]}-slim`\n"
 
     if build_fat:
         summary += "\n**Fat**:\n"
         if matrix_entry.get("publish_ghcr", True):
-            summary += f"- `ghcr.io/13fragments/{image}:{version}-fat`\n"
-            summary += f"- `ghcr.io/13fragments/{image}:r{revision[:7]}-fat`\n"
+            summary += f"- `{reg_ghcr}/{image}:{version}-fat`\n"
+            summary += f"- `{reg_ghcr}/{image}:r{revision[:7]}-fat`\n"
 
         if matrix_entry.get("publish_dh", True):
-            summary += f"- `13fragments/{image}:{version}-fat`\n"
-            summary += f"- `13fragments/{image}:r{revision[:7]}-fat`\n"
+            summary += f"- `{reg_dh}/{image}:{version}-fat`\n"
+            summary += f"- `{reg_dh}/{image}:r{revision[:7]}-fat`\n"
 
     summary += f"""
 ### Compliance
@@ -100,7 +102,7 @@ def generate_summary(matrix_entry: dict) -> str:
 docker run -p 8000:8000 \\
   -v $(pwd)/models:/models \\
   -e HUGGING_FACE_HUB_TOKEN=your_token \\
-  ghcr.io/13fragments/{image}:{version}-slim
+  {reg_ghcr}/{image}:{version}-slim
 ```
 """
 
@@ -109,7 +111,7 @@ docker run -p 8000:8000 \\
 **Fat** (model embedded):
 ```bash
 docker run -p 8000:8000 \\
-  ghcr.io/13fragments/{image}:{version}-fat
+  {reg_ghcr}/{image}:{version}-fat
 ```
 """
 
@@ -122,6 +124,8 @@ def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Generate build summary")
     parser.add_argument("--matrix", required=True, help="JSON matrix entry")
+    parser.add_argument("--reg-ghcr", default="ghcr.io/13fragments", help="GHCR registry path")
+    parser.add_argument("--reg-dh", default="13fragments", help="Docker Hub registry path")
 
     args = parser.parse_args()
 
@@ -131,7 +135,7 @@ def main():
         print(f"Error parsing matrix JSON: {e}", file=sys.stderr)
         sys.exit(1)
 
-    summary = generate_summary(matrix_entry)
+    summary = generate_summary(matrix_entry, args.reg_ghcr, args.reg_dh)
     print(summary)
 
 

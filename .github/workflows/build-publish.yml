@@ -251,5 +251,10 @@ jobs:
 
       - name: Generate summary
         if: always()
+        # Pass registry names explicitly to avoid GitHub Actions masking them with ***
         run: |
-          python .ci/summary.py --matrix '${{ toJSON(matrix) }}' >> $GITHUB_STEP_SUMMARY
+          python .ci/summary.py \
+            --matrix '${{ toJSON(matrix) }}' \
+            --reg-ghcr '${{ env.REG_GHCR }}' \
+            --reg-dh '${{ env.REG_DH }}' \
+            >> $GITHUB_STEP_SUMMARY
