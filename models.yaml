@@ -30,3 +30,18 @@ models:
     publish:
       ghcr: true
       dockerhub: false
+
+  - id: "NousResearch/Hermes-4-70B"
+    short: "hermes-4-70b"
+    revision: null
+    permissive: false  # Force slim-only for large 70B model
+    override_spdx: null
+    gated: auto
+    serve_args: ["--host", "0.0.0.0", "--port", "8000"]
+    oci:
+      title: "vLLM + Hermes-4-70B"
+      description: "Slim/Fat images built from Hugging Face; see /licenses for compliance."
+      url: "https://huggingface.co/NousResearch/Hermes-4-70B"
+    publish:
+      ghcr: true
+      dockerhub: false

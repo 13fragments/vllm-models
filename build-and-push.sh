@@ -147,3 +147,4 @@ echo "  docker run -p 8000:8000 -v \$(pwd)/models:/models \\"
 echo "    ${REGISTRY}/${IMAGE_NAME}:${VERSION}-slim"
 echo ""
 
+
