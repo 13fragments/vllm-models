@@ -45,3 +45,18 @@ models:
     publish:
       ghcr: true
       dockerhub: false
+
+  - id: "cpatonn/Hermes-4-70B-AWQ-4bit"
+    short: "hermes-4-70b-awq-4bit"
+    revision: null
+    permissive: false  # Force slim-only for quantized 70B model
+    override_spdx: null
+    gated: auto
+    serve_args: ["--host", "0.0.0.0", "--port", "8000", "--quantization", "awq"]
+    oci:
+      title: "vLLM + Hermes-4-70B-AWQ-4bit"
+      description: "Slim image with AWQ 4-bit quantization; see /licenses for compliance."
+      url: "https://huggingface.co/cpatonn/Hermes-4-70B-AWQ-4bit"
+    publish:
+      ghcr: true
+      dockerhub: false
